@@ -9,9 +9,11 @@ azure_openai_endpoint = "https://internshala.openai.azure.com/openai/deployments
 # Initialize conversation history
 if "messages" not in st.session_state:
     st.session_state["messages"] = [{"role": "system", "content": "You are a helpful assistant."}]
+if "user_input" not in st.session_state:
+    st.session_state["user_input"] = ""
 
 # Function to communicate with Azure OpenAI API
-def get_response_from_openai(user_input):
+def get_response_from_openai():
     headers = {
         "Content-Type": "application/json",
         "api-key": azure_openai_key,
@@ -36,16 +38,21 @@ def get_response_from_openai(user_input):
         return None
 
 # Function to handle user input and interaction
-def handle_user_input(user_input):
-    # Append user message to the chat history
-    st.session_state["messages"].append({"role": "user", "content": user_input})
-    
-    # Get the response from OpenAI
-    ai_response = get_response_from_openai(user_input)
-    
-    if ai_response:
-        # Append AI response to the chat history
-        st.session_state["messages"].append({"role": "assistant", "content": ai_response})
+def handle_user_input():
+    user_input = st.session_state["user_input"]
+    if user_input.strip():
+        # Append user message to the chat history
+        st.session_state["messages"].append({"role": "user", "content": user_input})
+
+        # Get the response from OpenAI
+        ai_response = get_response_from_openai()
+
+        if ai_response:
+            # Append AI response to the chat history
+            st.session_state["messages"].append({"role": "assistant", "content": ai_response})
+
+        # Clear user input after sending
+        st.session_state["user_input"] = ""
 
 # Function to display chat history
 def display_chat_history():
@@ -62,19 +69,11 @@ def main():
     st.title("💬 Azure OpenAI GPT-4 Chat")
     st.subheader("Powered by Azure OpenAI Service")
 
-    # Input from the user
-    user_input = st.text_input("Type your message:", key="user_input")
-
-    # Button to send the message
-    if st.button("Send"):
-        if user_input.strip():  # Only proceed if user input is not empty
-            handle_user_input(user_input)
-            st.text_input("Type your message:", value="", key="user_input", placeholder="Type here...")  # Clear the input box
-        else:
-            st.warning("Please enter a message.")
-
     # Display chat history
     display_chat_history()
+
+    # Input from the user
+    st.text_input("Type your message:", key="user_input", on_change=handle_user_input)
 
 if __name__ == "__main__":
     main()
