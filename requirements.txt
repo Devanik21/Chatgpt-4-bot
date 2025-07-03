@@ -1,12 +1,3 @@
 streamlit
-pandas
-numpy
-scikit-learn
-joblib
-matplotlib
-seaborn
-xgboost
-lightgbm
-tensorflow
-openai
-keras
+google-generativeai
+graphviz
