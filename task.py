@@ -305,7 +305,15 @@ if st.button("✨ Generate Mind Map", disabled=not topic_seed) or regenerate:
                                 mime="image/png"
                             )
                     except Exception:
-                        st.info("Graphviz PNG export requires Graphviz installed on the server.")
+                        st.info(
+                            "Graphviz PNG export requires Graphviz installed on the server.\n\n"
+                            "To enable PNG export, install Graphviz:\n"
+                            "- **Windows:** Download and install from https://graphviz.gitlab.io/_pages/Download/Download_windows.html and add Graphviz to your PATH.\n"
+                            "- **macOS:** Run `brew install graphviz` in Terminal.\n"
+                            "- **Linux (Debian/Ubuntu):** Run `sudo apt-get install graphviz`.\n"
+                            "- **Linux (Fedora):** Run `sudo dnf install graphviz`.\n"
+                            "After installation, restart your app/server."
+                        )
                 with col4:
                     if export_pdf:
                         try:
