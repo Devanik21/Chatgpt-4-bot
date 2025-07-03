@@ -90,7 +90,7 @@ def parse_markdown_to_graphviz(markdown_text: str, topic: str) -> graphviz.Digra
 
 def generate_mind_map(topic: str):
     """Calls the Gemini API to generate the mind map markdown."""
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-pro')
     prompt = MIND_MAP_PROMPT.format(topic=topic)
     response = model.generate_content(prompt)
     return response.text
@@ -130,6 +130,24 @@ if st.button("✨ Generate Mind Map", disabled=not topic_seed):
             st.graphviz_chart(graph)
             st.subheader("Raw Outline (Markdown)")
             st.code(markdown_output, language="markdown")
+
+            # --- Export Options ---
+            st.subheader("Export Options")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="Download Markdown",
+                    data=markdown_output,
+                    file_name=f"{topic_seed}_mindmap.md",
+                    mime="text/markdown"
+                )
+            with col2:
+                st.download_button(
+                    label="Download Graphviz DOT",
+                    data=graph.source,
+                    file_name=f"{topic_seed}_mindmap.dot",
+                    mime="text/vnd.graphviz"
+                )
         except Exception as e:
             st.error(f"An error occurred while generating the mind map: {e}")
             st.info("This could be due to an invalid API key or a content safety issue from the model.")
