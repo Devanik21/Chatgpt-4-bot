@@ -90,7 +90,7 @@ def parse_markdown_to_graphviz(markdown_text: str, topic: str) -> graphviz.Digra
 
 def generate_mind_map(topic: str):
     """Calls the Gemini API to generate the mind map markdown."""
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     prompt = MIND_MAP_PROMPT.format(topic=topic)
     response = model.generate_content(prompt)
     return response.text
