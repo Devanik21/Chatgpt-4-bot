@@ -4,6 +4,8 @@ numpy
 scikit-learn
 joblib
 matplotlib
+google-genai
+pillow
 seaborn
 xgboost
 lightgbm
