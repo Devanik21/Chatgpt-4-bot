@@ -1,42 +1,46 @@
 import streamlit as st
 from io import BytesIO
 from PIL import Image
-from google import genai
+import torch
+from diffusers import StableDiffusionPipeline
 
-# Load secrets
+# Load database secrets (optional)
 db_username = st.secrets["db_username"]
 db_password = st.secrets["db_password"]
-gemini_api_key = st.secrets["gemini_api_key"]
+# Use db_username/db_password for DB connections here
 
-# Optionally, connect to your database using db_username and db_password here
-# e.g., connection = YourDBClient(username=db_username, password=db_password)
+# Sidebar settings
+st.sidebar.title("Settings")
+model_id = st.sidebar.selectbox(
+    "Choose a model:",
+    [
+        "stabilityai/stable-diffusion-2-1",
+        "prompthero/openjourney",
+        "dreamlike-art/dreamshaper-v7",
+    ],
+)
+num_images = st.sidebar.slider("Number of images", 1, 4, 1)
 
-# Initialize GenAI client with secrets
-client = genai.Client(api_key=gemini_api_key)
+# Cache the pipeline loading
+@st.cache_resource
+def load_pipeline(model_name):
+    return StableDiffusionPipeline.from_pretrained(
+        model_name, torch_dtype=torch.float16
+    ).to("cuda" if torch.cuda.is_available() else "cpu")
 
-# Streamlit UI
-st.title("🖼️ GenAI Image Generator with Secrets")
+pipe = load_pipeline(model_id)
 
-prompt = st.text_input("Enter your image prompt:", "A futuristic cityscape at sunset")
-num_images = st.slider("Number of images", min_value=1, max_value=4, value=1)
-aspect = st.selectbox("Aspect ratio", ["1:1", "3:4", "4:3", "9:16", "16:9"])
+# App UI
+st.title("🖼️ Local Stable Diffusion Generator")
+prompt = st.text_input("Enter your prompt:", "A futuristic cityscape at sunset")
 
 if st.button("Generate Images"):
     with st.spinner("Generating..."):
-        try:
-            result = client.models.generate_images(
-                model="imagen-3.0-generate-002",
-                prompt=prompt,
-                config={
-                    "number_of_images": num_images,
-                    "output_mime_type": "image/jpeg",
-                    "person_generation": "ALLOW_ADULT",
-                    "aspect_ratio": aspect
-                }
-            )
-            # Display images
-            for idx, gen_img in enumerate(result.generated_images, start=1):
-                img = Image.open(BytesIO(gen_img.image.image_bytes))
-                st.image(img, caption=f"Generated #{idx}", use_column_width=True)
-        except Exception as e:
-            st.error(f"Error generating images: {e}")
+        images = pipe(
+            prompt=prompt,
+            num_inference_steps=30,
+            guidance_scale=7.5,
+            num_images_per_prompt=num_images,
+        ).images
+        for i, img in enumerate(images, 1):
+            st.image(img, caption=f"{model_id} #{i}", use_column_width=True)
