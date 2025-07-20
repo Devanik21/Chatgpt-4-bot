@@ -1,3 +1,6 @@
-google-genai
 streamlit
+diffusers
+transformers
+torch
+accelerate
 pillow
