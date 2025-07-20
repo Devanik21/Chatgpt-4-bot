@@ -1,79 +1,42 @@
 import streamlit as st
-import requests
-import json
+from io import BytesIO
+from PIL import Image
+from google import genai
 
-# Azure OpenAI connection details
-azure_openai_key = "22ec84421ec24230a3638d1b51e3a7dc"  # Replace with your actual key
-azure_openai_endpoint =  'https://internshala.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-08-01-preview'   # Replace with your actual endpoint
+# Load secrets
+db_username = st.secrets["db_username"]
+db_password = st.secrets["db_password"]
+gemini_api_key = st.secrets["gemini_api_key"]
 
-# Initialize conversation history
-if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "system", "content": "You are a helpful assistant."}]
-if "user_input" not in st.session_state:
-    st.session_state["user_input"] = ""
+# Optionally, connect to your database using db_username and db_password here
+# e.g., connection = YourDBClient(username=db_username, password=db_password)
 
-# Function to communicate with Azure OpenAI API
-def get_response_from_openai():
-    headers = {
-        "Content-Type": "application/json",
-        "api-key": azure_openai_key,
-    }
-    
-    data = {
-        "messages": st.session_state["messages"],  # Chat history
-        "max_tokens": 1500,  # You can adjust the token limit as needed
-    }
-    
-    try:
-        response = requests.post(azure_openai_endpoint, headers=headers, json=data)
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result["choices"][0]["message"]["content"].strip()
-        else:
-            st.error(f"API Error: {response.status_code} - {response.text}")
-            return None
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        return None
+# Initialize GenAI client with secrets
+client = genai.Client(api_key=gemini_api_key)
 
-# Function to handle user input and interaction
-def handle_user_input():
-    user_input = st.session_state["user_input"]
-    if user_input.strip():
-        # Append user message to the chat history
-        st.session_state["messages"].append({"role": "user", "content": user_input})
+# Streamlit UI
+st.title("🖼️ GenAI Image Generator with Secrets")
 
-        # Get the response from OpenAI
-        ai_response = get_response_from_openai()
+prompt = st.text_input("Enter your image prompt:", "A futuristic cityscape at sunset")
+num_images = st.slider("Number of images", min_value=1, max_value=4, value=1)
+aspect = st.selectbox("Aspect ratio", ["1:1", "3:4", "4:3", "9:16", "16:9"])
 
-        if ai_response:
-            # Append AI response to the chat history
-            st.session_state["messages"].append({"role": "assistant", "content": ai_response})
-
-        # Clear user input after sending
-        st.session_state["user_input"] = ""
-
-# Function to display chat history
-def display_chat_history():
-    st.write("### Chat History")
-    for message in st.session_state["messages"]:
-        if message["role"] == "user":
-            st.write(f"**You:** {message['content']}")
-        elif message["role"] == "assistant":
-            st.write(f"**Assistant:** {message['content']}")
-    st.write("---")
-
-# Main function for the app
-def main():
-    st.title("💬 Azure OpenAI GPT-4 Chat")
-    st.subheader("Powered by Azure OpenAI Service")
-
-    # Display chat history
-    display_chat_history()
-
-    # Input from the user
-    st.text_input("Type your message:", key="user_input", on_change=handle_user_input)
-
-if __name__ == "__main__":
-    main()
+if st.button("Generate Images"):
+    with st.spinner("Generating..."):
+        try:
+            result = client.models.generate_images(
+                model="imagen-3.0-generate-002",
+                prompt=prompt,
+                config={
+                    "number_of_images": num_images,
+                    "output_mime_type": "image/jpeg",
+                    "person_generation": "ALLOW_ADULT",
+                    "aspect_ratio": aspect
+                }
+            )
+            # Display images
+            for idx, gen_img in enumerate(result.generated_images, start=1):
+                img = Image.open(BytesIO(gen_img.image.image_bytes))
+                st.image(img, caption=f"Generated #{idx}", use_column_width=True)
+        except Exception as e:
+            st.error(f"Error generating images: {e}")
